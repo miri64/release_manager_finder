@@ -1,4 +1,4 @@
-# release_manager_finder
+# RIOT release manager finder
 
 Helps the RIOT community to find its next release manager
 
