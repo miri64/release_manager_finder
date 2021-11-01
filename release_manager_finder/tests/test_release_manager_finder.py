@@ -174,10 +174,10 @@ def test_sort_by_release_management():
 
 
 def test_least_managing():
+    current_maintainers = {"foobar", "test", "snafu"}
     maintainers = [(3, "foobar"), (5, "huey"), (2, "test"), (2, "louie"), (2, "snafu")]
-    assert least_managing(maintainers) == [
+    assert least_managing(maintainers, current_maintainers) == [
         (2, "test"),
-        (2, "louie"),
         (2, "snafu"),
     ]
 
@@ -196,9 +196,17 @@ def test_parse_args(mocker):
 
 def test_print_results(mocker, capsys):
     mocker.patch("random.choice", lambda l: l[0])
-    maintainers = [(2, "foobar"), (2, "huey"), (2, "test"), (3, "louie"), (5, "snafu")]
+    current_maintainers = {"foobar", "huey", "louie", "scrooge"}
+    maintainers = [
+        (2, "foobar"),
+        (2, "huey"),
+        (2, "test"),
+        (3, "louie"),
+        (5, "snafu"),
+        (2, "scrooge"),
+    ]
     opt_out_list = ["huey", "dewey", "louie"]
-    print_results(maintainers, opt_out_list)
+    print_results(maintainers, opt_out_list, current_maintainers)
     captured = capsys.readouterr()
     assert (
         captured.out
@@ -207,6 +215,7 @@ def test_print_results(mocker, capsys):
   2	foobar
   2	test
   5	snafu
+  2	scrooge
 
 
 Opt-out list
@@ -219,7 +228,7 @@ louie
 Selection pool
 ==============
   2	foobar
-  2	test
+  2	scrooge
 
 
 The next release manager is: foobar

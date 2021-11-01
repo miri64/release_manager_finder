@@ -87,9 +87,11 @@ def sort_by_release_management(maintainers):
     return sorted(maintainers_tuples)
 
 
-def least_managing(maintainers):
+def least_managing(maintainers, current_maintainers):
     min_managing = min(m[0] for m in maintainers)
-    return [m for m in maintainers if m[0] == min_managing]
+    return [
+        m for m in maintainers if m[0] == min_managing and m[1] in current_maintainers
+    ]
 
 
 def parse_args():
@@ -106,7 +108,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def print_results(maintainers_sorted, opt_out_list):
+def print_results(maintainers_sorted, opt_out_list, current_maintainers):
     maintainers_sorted = filter_out_opt_out(maintainers_sorted, opt_out_list)
     print("Current release management tally")
     print("================================")
@@ -118,7 +120,7 @@ def print_results(maintainers_sorted, opt_out_list):
         print(f"{maintainer}")
     print("\n\nSelection pool")
     print("==============")
-    least_managing_maintainers = least_managing(maintainers_sorted)
+    least_managing_maintainers = least_managing(maintainers_sorted, current_maintainers)
     for maintainer in least_managing_maintainers:
         print(f"{maintainer[0]:3d}\t{maintainer[1]}")
     print(
@@ -131,8 +133,9 @@ def main():
     args = parse_args()
     opt_out_list = get_opt_out_list(args)
     github = agithub.GitHub.GitHub(token=args.gh_token)
-    maintainers = get_maintainers(github)
+    current_maintainers = get_maintainers(github)
+    maintainers = current_maintainers.copy()
     past_release_managers = get_past_release_managers(github)
     maintainers.update(past_release_managers)
     maintainers_sorted = sort_by_release_management(maintainers)
-    print_results(maintainers_sorted, opt_out_list)
+    print_results(maintainers_sorted, opt_out_list, set(current_maintainers.keys()))
