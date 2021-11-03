@@ -111,7 +111,6 @@ def parse_args():
 
 
 def print_results(maintainers_sorted, opt_out_list, current_maintainers):
-    maintainers_sorted = filter_out_opt_out(maintainers_sorted, opt_out_list)
     print("Current release management tally")
     print("================================")
     for maintainer in maintainers_sorted:
@@ -120,6 +119,7 @@ def print_results(maintainers_sorted, opt_out_list, current_maintainers):
     print("============")
     for maintainer in opt_out_list:
         print(f"{maintainer}")
+    maintainers_sorted = filter_out_opt_out(maintainers_sorted, opt_out_list)
     print("\n\nSelection pool")
     print("==============")
     least_managing_maintainers = least_managing(maintainers_sorted, current_maintainers)

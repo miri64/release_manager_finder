@@ -220,7 +220,9 @@ def test_print_results(mocker, capsys):
         == """Current release management tally
 ================================
   2	foobar
+  2	huey
   2	test
+  3	louie
   5	snafu
   2	scrooge
 
