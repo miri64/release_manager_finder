@@ -117,7 +117,7 @@ def print_results(maintainers_sorted, opt_out_list, current_maintainers):
         print(f"{maintainer[0]:3d}\t{maintainer[1]}")
     print("\n\nOpt-out list")
     print("============")
-    for maintainer in opt_out_list:
+    for maintainer in sorted(opt_out_list):
         print(f"{maintainer}")
     maintainers_sorted = filter_out_opt_out(maintainers_sorted, opt_out_list)
     print("\n\nSelection pool")

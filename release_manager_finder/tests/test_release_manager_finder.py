@@ -229,8 +229,8 @@ def test_print_results(mocker, capsys):
 
 Opt-out list
 ============
-huey
 dewey
+huey
 louie
 
 
