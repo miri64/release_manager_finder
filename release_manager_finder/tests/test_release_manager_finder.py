@@ -154,6 +154,13 @@ def test_get_opt_out_list(mocker):
     opt_out_list = get_opt_out_list(argparse.Namespace(opt_out_list=None))
     assert not opt_out_list
 
+    mocker.patch(
+        "release_manager_finder.open",
+        mocker.mock_open(read_data="huey\n  \n   # donald  \n  dewey\n louie  "),
+    )
+    opt_out_list = get_opt_out_list(argparse.Namespace(opt_out_list="test"))
+    assert opt_out_list == ["huey", "dewey", "louie"]
+
 
 def test_filter_out_opt_out():
     maintainers = [(0, "foobar"), (0, "huey"), (0, "test"), (0, "louie")]

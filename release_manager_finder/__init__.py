@@ -74,7 +74,9 @@ def get_opt_out_list(args):
     if args.opt_out_list:
         with open(args.opt_out_list, encoding="utf-8") as opt_out_file:
             for maintainer in opt_out_file:
-                opt_out_list.append(maintainer.strip())
+                maintainer = maintainer.strip()
+                if maintainer and not maintainer.startswith("#"):
+                    opt_out_list.append(maintainer)
     return opt_out_list
 
 
