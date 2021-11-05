@@ -1,1 +1,1 @@
-agithub
+agithub>=2.2

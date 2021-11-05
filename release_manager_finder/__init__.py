@@ -134,7 +134,7 @@ def print_results(maintainers_sorted, opt_out_list, current_maintainers):
 def main():
     args = parse_args()
     opt_out_list = get_opt_out_list(args)
-    github = agithub.GitHub.GitHub(token=args.gh_token)
+    github = agithub.GitHub.GitHub(token=args.gh_token, paginate=True)
     current_maintainers = get_maintainers(github)
     maintainers = current_maintainers.copy()
     past_release_managers = get_past_release_managers(github)
