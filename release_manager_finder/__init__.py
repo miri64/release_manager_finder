@@ -90,10 +90,16 @@ def sort_by_release_management(maintainers):
 
 
 def least_managing(maintainers, current_maintainers):
-    min_managing = min(m[0] for m in maintainers)
-    return [
-        m for m in maintainers if m[0] == min_managing and m[1] in current_maintainers
-    ]
+    res = []
+    min_managing = -1
+    while len(res) <= 1:
+        min_managing = min(m[0] for m in maintainers if m[0] > min_managing)
+        res.extend([
+            m
+            for m in maintainers
+            if m[0] == min_managing and m[1] in current_maintainers
+        ])
+    return res
 
 
 def parse_args():
