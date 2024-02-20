@@ -202,7 +202,7 @@ def test_parse_args(mocker):
 
 
 def test_print_results(mocker, capsys):
-    mocker.patch("random.choice", lambda l: l[0])
+    mocker.patch("random.choice", lambda seq: seq[0])
     current_maintainers = {"foobar", "huey", "louie", "scrooge"}
     maintainers = [
         (2, "foobar"),
