@@ -24,6 +24,7 @@ from .. import (
     get_owners,
     get_maintainers,
     get_past_release_managers,
+    get_attendees_list,
     get_opt_out_list,
     filter_out_opt_out,
     sort_by_release_management,
@@ -160,6 +161,22 @@ def test_get_opt_out_list(mocker):
     )
     opt_out_list = get_opt_out_list(argparse.Namespace(opt_out_list="test"))
     assert opt_out_list == ["huey", "dewey", "louie"]
+
+
+def test_get_attendees_list(mocker):
+    mocker.patch(
+        "release_manager_finder.open",
+        mocker.mock_open(read_data="huey\n   dewey\n louie  "),
+    )
+    attendees_list = get_attendees_list(argparse.Namespace(attendees_list="test"))
+    assert attendees_list == ["huey", "dewey", "louie"]
+
+    mocker.patch(
+        "release_manager_finder.open",
+        mocker.mock_open(read_data="huey\n  \n   # donald  \n  dewey\n louie  "),
+    )
+    attendees_list = get_attendees_list(argparse.Namespace(attendees_list="test"))
+    assert attendees_list == ["huey", "dewey", "louie"]
 
 
 def test_filter_out_opt_out():
@@ -302,3 +319,27 @@ def test_main(mocker, opt_out_list, attendees_list, capsys):
                     next_rm = match[1]
     assert next_rm
     assert next_rm in expected_maintainer_pool
+
+
+def test_no_selection_pool(mocker, opt_out_list, attendees_list, capsys):
+    mocker.patch(
+        "sys.argv",
+        ["command", os.environ["GITHUB_TOKEN"], opt_out_list, attendees_list],
+    )
+    # Causes attendees list to opt out
+    mocker.patch(
+        "release_manager_finder.open",
+        mocker.mock_open(read_data="miri64"),
+    )
+
+    main()
+    captured = capsys.readouterr()
+    found_line = False
+    in_selection_pool = False
+    for line in captured.out.split("\n"):
+        if line == "Selection pool":
+            in_selection_pool = True
+        if in_selection_pool:
+            if "Selection pool is empty!" == line.strip():
+                found_line = True
+    assert found_line

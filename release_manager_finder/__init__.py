@@ -82,12 +82,11 @@ def get_opt_out_list(args):
 
 def get_attendees_list(args):
     attendees_list = []
-    if args.attendees_list:
-        with open(args.attendees_list, encoding="utf-8") as attendees_file:
-            for maintainer in attendees_file:
-                maintainer = maintainer.strip()
-                if maintainer and not maintainer.startswith("#"):
-                    attendees_list.append(maintainer)
+    with open(args.attendees_list, encoding="utf-8") as attendees_file:
+        for maintainer in attendees_file:
+            maintainer = maintainer.strip()
+            if maintainer and not maintainer.startswith("#"):
+                attendees_list.append(maintainer)
     return attendees_list
 
 
