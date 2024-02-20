@@ -80,8 +80,23 @@ def get_opt_out_list(args):
     return opt_out_list
 
 
+def get_attendees_list(args):
+    attendees_list = []
+    if args.attendees_list:
+        with open(args.attendees_list, encoding="utf-8") as attendees_file:
+            for maintainer in attendees_file:
+                maintainer = maintainer.strip()
+                if maintainer and not maintainer.startswith("#"):
+                    attendees_list.append(maintainer)
+    return attendees_list
+
+
 def filter_out_opt_out(maintainers, opt_out_list):
     return [m for m in maintainers if m[1] not in opt_out_list]
+
+
+def filter_out_non_attendees(maintainers, attendees_list):
+    return [m for m in maintainers if m[1] in attendees_list]
 
 
 def sort_by_release_management(maintainers):
@@ -115,10 +130,17 @@ def parse_args():
         default=None,
         nargs="?",
     )
+    parser.add_argument(
+        "attendees_list",
+        help="File with list of attending maintainers",
+        default=None,
+    )
     return parser.parse_args()
 
 
-def print_results(maintainers_sorted, opt_out_list, current_maintainers):
+def print_results(
+    maintainers_sorted, opt_out_list, attendees_list, current_maintainers
+):
     print("Current release management tally")
     print("================================")
     for maintainer in maintainers_sorted:
@@ -127,25 +149,41 @@ def print_results(maintainers_sorted, opt_out_list, current_maintainers):
     print("============")
     for maintainer in sorted(opt_out_list):
         print(f"{maintainer}")
+    print("\n\nAttendees list")
+    print("==============")
+    for maintainer in sorted(attendees_list):
+        print(f"{maintainer}")
     maintainers_sorted = filter_out_opt_out(maintainers_sorted, opt_out_list)
+    maintainers_sorted = filter_out_non_attendees(maintainers_sorted, attendees_list)
     print("\n\nSelection pool")
     print("==============")
-    least_managing_maintainers = least_managing(maintainers_sorted, current_maintainers)
-    for maintainer in least_managing_maintainers:
-        print(f"{maintainer[0]:3d}\t{maintainer[1]}")
-    print(
-        "\n\nThe next release manager is: "
-        f"{random.choice(least_managing_maintainers)[1]}"
-    )
+    try:
+        least_managing_maintainers = least_managing(
+            maintainers_sorted, current_maintainers
+        )
+        for maintainer in least_managing_maintainers:
+            print(f"{maintainer[0]:3d}\t{maintainer[1]}")
+        print(
+            "\n\nThe next release manager is: "
+            f"{random.choice(least_managing_maintainers)[1]}"
+        )
+    except ValueError:
+        print("Selection pool is empty!")
 
 
 def main():
     args = parse_args()
     opt_out_list = get_opt_out_list(args)
+    attendees_list = get_attendees_list(args)
     github = agithub.GitHub.GitHub(token=args.gh_token, paginate=True)
     current_maintainers = get_maintainers(github)
     maintainers = current_maintainers.copy()
     past_release_managers = get_past_release_managers(github)
     maintainers.update(past_release_managers)
     maintainers_sorted = sort_by_release_management(maintainers)
-    print_results(maintainers_sorted, opt_out_list, set(current_maintainers.keys()))
+    print_results(
+        maintainers_sorted,
+        opt_out_list,
+        attendees_list,
+        set(current_maintainers.keys()),
+    )

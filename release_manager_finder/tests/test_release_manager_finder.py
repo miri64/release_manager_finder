@@ -190,20 +190,25 @@ def test_least_managing():
 
 
 def test_parse_args(mocker):
-    mocker.patch("sys.argv", ["command", "test_token"])
+    mocker.patch("sys.argv", ["command", "test_token", "test_attendees_list"])
     args = parse_args()
     assert args.gh_token == "test_token"
     assert args.opt_out_list is None
+    assert args.attendees_list == "test_attendees_list"
 
-    mocker.patch("sys.argv", ["command", "test_token", "test_opt_out_list"])
+    mocker.patch(
+        "sys.argv",
+        ["command", "test_token", "test_opt_out_list", "test_attendees_list"],
+    )
     args = parse_args()
     assert args.gh_token == "test_token"
     assert args.opt_out_list == "test_opt_out_list"
+    assert args.attendees_list == "test_attendees_list"
 
 
 def test_print_results(mocker, capsys):
     mocker.patch("random.choice", lambda seq: seq[0])
-    current_maintainers = {"foobar", "huey", "louie", "scrooge"}
+    current_maintainers = {"foobar", "huey", "louie", "scrooge", "donald"}
     maintainers = [
         (2, "foobar"),
         (2, "huey"),
@@ -211,9 +216,11 @@ def test_print_results(mocker, capsys):
         (3, "louie"),
         (5, "snafu"),
         (2, "scrooge"),
+        (2, "donald"),
     ]
     opt_out_list = ["huey", "dewey", "louie"]
-    print_results(maintainers, opt_out_list, current_maintainers)
+    attendees_list = ["louie", "dewey", "foobar", "donald"]
+    print_results(maintainers, opt_out_list, attendees_list, current_maintainers)
     captured = capsys.readouterr()
     assert (
         captured.out
@@ -225,6 +232,7 @@ def test_print_results(mocker, capsys):
   3	louie
   5	snafu
   2	scrooge
+  2	donald
 
 
 Opt-out list
@@ -234,10 +242,18 @@ huey
 louie
 
 
+Attendees list
+==============
+dewey
+donald
+foobar
+louie
+
+
 Selection pool
 ==============
   2	foobar
-  2	scrooge
+  2	donald
 
 
 The next release manager is: foobar
@@ -245,11 +261,26 @@ The next release manager is: foobar
     )
 
 
-def test_main(mocker, capsys):
-    mocker.patch("sys.argv", ["command", os.environ["GITHUB_TOKEN"], "mocked_file"])
+@pytest.fixture
+def attendees_list(tmp_path):
+    output = tmp_path / "attendees"
+    with open(output, "w", encoding="utf-8") as f:
+        f.write("miri64\nemmanuelsearch\nkaspar030")
+    return str(output)
+
+
+@pytest.fixture
+def opt_out_list(tmp_path):
+    output = tmp_path / "opt-out"
+    with open(output, "w", encoding="utf-8") as f:
+        f.write("miri64")
+    return str(output)
+
+
+def test_main(mocker, opt_out_list, attendees_list, capsys):
     mocker.patch(
-        "release_manager_finder.open",
-        mocker.mock_open(read_data="miri64"),
+        "sys.argv",
+        ["command", os.environ["GITHUB_TOKEN"], opt_out_list, attendees_list],
     )
     main()
     captured = capsys.readouterr()
