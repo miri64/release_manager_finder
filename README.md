@@ -1,5 +1,7 @@
 # RIOT release manager finder
 
+**The tests are currently broken.**
+
 Helps the RIOT community to find its next release manager
 
 ## Usage
