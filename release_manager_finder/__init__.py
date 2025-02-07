@@ -12,9 +12,14 @@ import argparse
 import random
 import re
 import typing
+import urllib.request
 
 import agithub.GitHub
+import bs4
 
+MAINTAINER_HTML_LIST_URL = "https://www.riot-os.org/maintainers.html"
+MAINTAINER_HTML_LIST_ID = "maintainer-list"
+MAINTAINER_HTML_ENTRY_SEARCH = {"name": "h5", "class_": "card-title"}
 OPT_OUT_FORUM = "https://forum.riot-os.org/t/release-management-opt-out/3354"
 GITHUB_ORGA = "RIOT-OS"
 GITHUB_REPO = "RIOT"
@@ -24,24 +29,15 @@ class GitHubError(Exception):
     pass
 
 
-def get_team_members(github, team):
-    status, data = github.orgs[GITHUB_ORGA].teams[team].members.get()
-    if status != 200:
-        raise GitHubError(data)
-    return {m["login"]: 0 for m in data}
-
-
-def get_owners(github):
-    status, data = github.orgs[GITHUB_ORGA].members.get(role="admin")
-    if status != 200:
-        raise GitHubError(data)
-    return {m["login"]: 0 for m in data}
-
-
-def get_maintainers(github):
-    maintainers = get_team_members(github, "maintainers")
-    maintainers.update(get_team_members(github, "admin"))
-    maintainers.update(get_owners(github))
+def get_maintainers() -> dict[str, int]:
+    maintainers = {}
+    with urllib.request.urlopen(MAINTAINER_HTML_LIST_URL) as ml:
+        soup = bs4.BeautifulSoup(ml.read(), "html.parser")
+        maintainer_list = soup.find(id=MAINTAINER_HTML_LIST_ID)
+        maintainer_list = maintainer_list.find_all(**MAINTAINER_HTML_ENTRY_SEARCH)
+        for maintainer in maintainer_list:
+            names = re.split(r"\s*\|\s*", maintainer.text.strip())
+            maintainers[names[0].strip("@")] = 0
     return maintainers
 
 
@@ -214,7 +210,7 @@ def main():
     opt_out_list = get_opt_out_list(args.opt_out_list)
     attendees_list = get_attendees_list(args.attendees_list)
     github = agithub.GitHub.GitHub(token=args.gh_token, paginate=True)
-    current_maintainers = get_maintainers(github)
+    current_maintainers = get_maintainers()
     maintainers = current_maintainers.copy()
     past_release_managers = get_past_release_managers(github)
     maintainers.update(past_release_managers)
