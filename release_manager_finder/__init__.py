@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2021 Freie Universität Berlin
+# Copyright (C) 2025 TU Dresden
 #
 # Distributed under terms of the MIT license.
 
