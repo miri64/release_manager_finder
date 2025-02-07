@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+  <form method="POST">
+    {% module xsrf_form_html() %}
+    <h2>Opt-out List</h2>
+    <p>
+    Select all who listed themselves in <a href="{{ opt_out_forum }}">the forum post</a>.
+    </p>
+    <div class="mb-3">
+      <fieldset>
+      {% for maintainer in maintainers %}
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" name="opt-out" type="checkbox" id="opt-out-{{ maintainer }}" value="{{ maintainer }}" {% if maintainer in opt_out_list %}checked{% end %} />
+        <label class="form-check-label" for="opt-out-{{ maintainer }}"><a href="https://github.com/{{ maintainer }}"><tt>@{{ maintainer }}</tt></a></label>
+      </div>
+      {% end %}
+      </fieldset>
+    </div>
+
+    <h2>Attendee List</h2>
+    <p>
+    Who is attending the current VMA?
+    </p>
+    <div class="mb-3">
+      <fieldset>
+      {% for maintainer in maintainers %}
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" name="attendees" type="checkbox" id="attending-{{ maintainer }}" value="{{ maintainer }}" />
+        <label class="form-check-label" for="attending-{{ maintainer }}"><a href="https://github.com/{{ maintainer }}"><tt>@{{ maintainer }}</tt></a></label>
+      </div>
+      {% end %}
+      </fieldset>
+    </div>
+
+    <h2>Next (yet unlisted) Release Manager(s)</h2>
+    <p>
+    Who was already selected as a release manager for one of the next releases?
+    </p>
+    <div class="mb-3">
+      <fieldset>
+      {% for maintainer in maintainers %}
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" name="next-rm" type="checkbox" id="next-rm-{{ maintainer }}" value="{{ maintainer }}" />
+        <label class="form-check-label" for="next-rm-{{ maintainer }}"><a href="https://github.com/{{ maintainer }}"><tt>@{{ maintainer }}</tt></a></label>
+      </div>
+      {% end %}
+      </fieldset>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Determine release manager</button>
+  </form>
+  <!-- Content here -->
+{% end %}
