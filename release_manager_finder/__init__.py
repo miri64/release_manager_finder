@@ -11,9 +11,11 @@
 import argparse
 import random
 import re
+import typing
 
 import agithub.GitHub
 
+OPT_OUT_FORUM = "https://forum.riot-os.org/t/release-management-opt-out/3354"
 GITHUB_ORGA = "RIOT-OS"
 GITHUB_REPO = "RIOT"
 
@@ -43,7 +45,7 @@ def get_maintainers(github):
     return maintainers
 
 
-def get_past_release_managers(github):
+def get_past_release_managers(github: agithub.GitHub.GitHub) -> dict[str, int]:
     release_managers = {}
     status, data = github.repos[GITHUB_ORGA][GITHUB_REPO].releases.get()
     if status != 200:
@@ -69,10 +71,17 @@ def get_past_release_managers(github):
     return release_managers
 
 
-def get_opt_out_list(args):
+def update_next_release_managers(
+    maintainers: dict[str, int], next_release_managers: list[str]
+) -> None:
+    for rm in next_release_managers:
+        maintainers[rm] += 1
+
+
+def get_opt_out_list(opt_out_filename: str = None) -> list[str]:
     opt_out_list = []
-    if args.opt_out_list:
-        with open(args.opt_out_list, encoding="utf-8") as opt_out_file:
+    if opt_out_filename:
+        with open(opt_out_filename, encoding="utf-8") as opt_out_file:
             for maintainer in opt_out_file:
                 maintainer = maintainer.strip()
                 if maintainer and not maintainer.startswith("#"):
@@ -80,9 +89,9 @@ def get_opt_out_list(args):
     return opt_out_list
 
 
-def get_attendees_list(args):
+def get_attendees_list(attendees_filename: str = None) -> list[str]:
     attendees_list = []
-    with open(args.attendees_list, encoding="utf-8") as attendees_file:
+    with open(attendees_filename, encoding="utf-8") as attendees_file:
         for maintainer in attendees_file:
             maintainer = maintainer.strip()
             if maintainer and not maintainer.startswith("#"):
@@ -90,20 +99,28 @@ def get_attendees_list(args):
     return attendees_list
 
 
-def filter_out_opt_out(maintainers, opt_out_list):
+def filter_out_opt_out(
+    maintainers: list[tuple[int, str]], opt_out_list: list[str]
+) -> list[str]:
     return [m for m in maintainers if m[1] not in opt_out_list]
 
 
-def filter_out_non_attendees(maintainers, attendees_list):
+def filter_out_non_attendees(
+    maintainers: list[tuple[int, str]], attendees_list: list[str]
+) -> list[str]:
     return [m for m in maintainers if m[1] in attendees_list]
 
 
-def sort_by_release_management(maintainers):
+def sort_by_release_management(
+    maintainers: dict[str, int],
+) -> typing.Iterator[tuple[int, str]]:
     maintainers_tuples = [(v, k) for k, v in maintainers.items()]
     return sorted(maintainers_tuples)
 
 
-def least_managing(maintainers, current_maintainers):
+def least_managing(
+    maintainers: list[tuple[int, str]], current_maintainers: typing.Sequence[str]
+) -> list[tuple[int, str]]:
     res = []
     min_managing = -1
     while len(res) <= 1:
@@ -118,31 +135,58 @@ def least_managing(maintainers, current_maintainers):
     return res
 
 
-def parse_args():
+def generate_selection_pool(
+    rm_tally: typing.Iterator[tuple[int, str]],
+    opt_out_list: list[str],
+    attendees_list: list[str],
+    current_maintainers: typing.Sequence[str],
+) -> list[tuple[int, str]]:
+    maintainers_sorted = filter_out_opt_out(rm_tally, opt_out_list)
+    maintainers_sorted = filter_out_non_attendees(maintainers_sorted, attendees_list)
+    return least_managing(maintainers_sorted, current_maintainers)
+
+
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("gh_token", help="GitHub token (needs read:org permission)")
+    parser.add_argument(
+        "-t",
+        "--gh-token",
+        help="GitHub token (needed to not run into rate-limiting).",
+    )
     parser.add_argument(
         "opt_out_list",
         help="File with list of opting out maintainers, "
-        "see https://forum.riot-os.org/t/release-management-opt-out/3354 "
+        f"see {OPT_OUT_FORUM} "
         "(GitHub user names, one per line)",
         default=None,
         nargs="?",
     )
     parser.add_argument(
         "attendees_list",
-        help="File with list of attending maintainers",
+        help="File with list of maintainers attending the VMA "
+        "(GitHub user names, one per line)",
         default=None,
+    )
+    parser.add_argument(
+        "-n",
+        "--next-release-manager",
+        help="GitHub user name of the next (yet unlisted) release manager(s)",
+        type=str,
+        action="append",
     )
     return parser.parse_args()
 
 
 def print_results(
-    maintainers_sorted, opt_out_list, attendees_list, current_maintainers
-):
+    rm_tally: typing.Iterator[tuple[int, str]],
+    opt_out_list: list[str],
+    attendees_list: list[str],
+    current_maintainers: typing.Sequence[str],
+    least_managing_maintainers: list[tuple[int, str]],
+) -> None:
     print("Current release management tally")
     print("================================")
-    for maintainer in maintainers_sorted:
+    for maintainer in rm_tally:
         print(f"{maintainer[0]:3d}\t{maintainer[1]}")
     print("\n\nOpt-out list")
     print("============")
@@ -152,14 +196,9 @@ def print_results(
     print("==============")
     for maintainer in sorted(attendees_list):
         print(f"{maintainer}")
-    maintainers_sorted = filter_out_opt_out(maintainers_sorted, opt_out_list)
-    maintainers_sorted = filter_out_non_attendees(maintainers_sorted, attendees_list)
     print("\n\nSelection pool")
     print("==============")
     try:
-        least_managing_maintainers = least_managing(
-            maintainers_sorted, current_maintainers
-        )
         for maintainer in least_managing_maintainers:
             print(f"{maintainer[0]:3d}\t{maintainer[1]}")
         print(
@@ -172,17 +211,25 @@ def print_results(
 
 def main():
     args = parse_args()
-    opt_out_list = get_opt_out_list(args)
-    attendees_list = get_attendees_list(args)
+    opt_out_list = get_opt_out_list(args.opt_out_list)
+    attendees_list = get_attendees_list(args.attendees_list)
     github = agithub.GitHub.GitHub(token=args.gh_token, paginate=True)
     current_maintainers = get_maintainers(github)
     maintainers = current_maintainers.copy()
     past_release_managers = get_past_release_managers(github)
     maintainers.update(past_release_managers)
-    maintainers_sorted = sort_by_release_management(maintainers)
-    print_results(
-        maintainers_sorted,
+    update_next_release_managers(maintainers, args.next_release_manager)
+    rm_tally = sort_by_release_management(maintainers)
+    least_managing_maintainers = generate_selection_pool(
+        rm_tally,
         opt_out_list,
         attendees_list,
         set(current_maintainers.keys()),
+    )
+    print_results(
+        rm_tally,
+        opt_out_list,
+        attendees_list,
+        set(current_maintainers.keys()),
+        least_managing_maintainers,
     )
