@@ -28,7 +28,7 @@ from release_manager_finder import (
 from release_manager_finder.web import auth
 
 
-CLIENT_ID = "Ov23li1MAo6EamrsbUjO"
+CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 GITHUB_TEAM = "maintainers"
 COOKIE_SECRET = os.environ["COOKIE_SECRET"]
