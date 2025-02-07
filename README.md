@@ -26,7 +26,7 @@ Install dependencies
 pip install -r requirements.txt -r requirements-web.txt
 ```
 
-Configure [an OAuth app](https://github.com/settings/applications) with `http://example.org/login`
+Configure [an OAuth app](https://github.com/settings/developers) with `http://example.org/login`
 as "authorization callback URL" (replace `example.org` with your server, default `localhost:8888`).
 
 Execute
