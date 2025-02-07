@@ -120,7 +120,9 @@ def least_managing(
 ) -> list[tuple[int, str]]:
     res = []
     min_managing = -1
-    while len(res) <= 1:
+    while len(res) <= 1 and maintainers:
+        if len(maintainers) == len(res):
+            break
         min_managing = min(m[0] for m in maintainers if m[0] > min_managing)
         res.extend(
             [
@@ -152,8 +154,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "opt_out_list",
-        help="File with list of opting out maintainers, "
-        f"see {OPT_OUT_FORUM} "
+        help=f"File with list of opting out maintainers, see {OPT_OUT_FORUM} "
         "(GitHub user names, one per line)",
         default=None,
         nargs="?",
@@ -172,6 +173,26 @@ def parse_args() -> argparse.Namespace:
         action="append",
     )
     return parser.parse_args()
+
+
+def get_results(
+    current_maintainers: dict[str, int],
+    past_release_managers: dict[str, int],
+    next_release_managers: list[str],
+    opt_out_list: list[str],
+    attendees_list: list[str],
+) -> tuple[typing.Iterator[tuple[int, str]], list[tuple[int, str]]]:
+    maintainers = current_maintainers.copy()
+    maintainers.update(past_release_managers)
+    update_next_release_managers(maintainers, next_release_managers)
+    rm_tally = sort_by_release_management(maintainers)
+    least_managing_maintainers = generate_selection_pool(
+        rm_tally,
+        opt_out_list,
+        attendees_list,
+        set(current_maintainers.keys()),
+    )
+    return rm_tally, least_managing_maintainers
 
 
 def print_results(
@@ -212,16 +233,13 @@ def main():
     attendees_list = get_attendees_list(args.attendees_list)
     github = agithub.GitHub.GitHub(token=args.gh_token, paginate=True)
     current_maintainers = get_maintainers()
-    maintainers = current_maintainers.copy()
     past_release_managers = get_past_release_managers(github)
-    maintainers.update(past_release_managers)
-    update_next_release_managers(maintainers, args.next_release_manager)
-    rm_tally = sort_by_release_management(maintainers)
-    least_managing_maintainers = generate_selection_pool(
-        rm_tally,
+    rm_tally, least_managing_maintainers = get_results(
+        current_maintainers,
+        past_release_managers,
+        args.next_release_manager or [],
         opt_out_list,
         attendees_list,
-        set(current_maintainers.keys()),
     )
     print_results(
         rm_tally,
