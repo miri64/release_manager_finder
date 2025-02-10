@@ -43,4 +43,21 @@ COOKIE_SECRET="<some long and random string>" \
 The opt-out list shall be formatted as above but is purely optional and only used to prefill the
 form of the web app.
 
+
+### Run in docker
+
+```
+docker build -t release-manager-finder .
+docker run \
+    -e COOKIE_SECRET="<som long and random string>" \
+    -e CLIENT_ID="<your OAuth App's client ID>" \
+    -e CLIENT_SECRET="<your OAuth App's client secret>" \
+    -d -p 8888:8888 \
+    -v ${PWD}:/app/ \   # optional
+    release-manager-finder:latest
+```
+
+(though it is probably better to use [`--env-file`][docker-env] for the environment variables instead)
+
 [opt-out-list]: https://forum.riot-os.org/t/release-management-opt-out/3354
+[docker-env]: https://docs.docker.com/reference/cli/docker/container/run/#env
