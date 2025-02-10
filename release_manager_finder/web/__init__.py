@@ -40,9 +40,9 @@ class BaseHandler(tornado.web.RequestHandler):
         if cookie:
             user = json.loads(cookie)
             github = agithub.GitHub.GitHub(token=user["access_token"], paginate=True)
-            status, team = github.orgs[GITHUB_ORGA].teams[GITHUB_TEAM].members[
-                user["login"]
-            ].get()
+            status, team = (
+                github.orgs[GITHUB_ORGA].teams[GITHUB_TEAM].members[user["login"]].get()
+            )
             if status == 404:
                 self.redirect(f"not-a-maintainer?user={user['login']}")
             return user
@@ -71,7 +71,7 @@ class LoginHandler(BaseHandler, auth.GitHubTeamOAuth2Mixin):
             self.authorize_redirect(
                 redirect_uri=redirect_uri,
                 client_id=CLIENT_ID,
-                response_type='code',
+                response_type="code",
                 **self.SCOPE,
             )
 
