@@ -172,18 +172,26 @@ def make_app(opt_out_list: list[str], gh_token: str = None) -> tornado.web.Appli
     )
 
 
-async def async_main(opt_out_filename: str = None, gh_token: str = None):
+async def async_main(
+    port: int = 8888, opt_out_filename: str = None, gh_token: str = None
+):
     if opt_out_filename:
         opt_out_list = get_opt_out_list(opt_out_filename)
     else:
         opt_out_list = []
     app = make_app(opt_out_list, gh_token)
-    app.listen(8888)
+    app.listen(port)
     await asyncio.Event().wait()
 
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-p",
+        "--port",
+        help="Port to run the web server on (default: 8888)",
+        default=8888,
+    )
     parser.add_argument(
         "-o",
         "--opt-out-list",
@@ -199,4 +207,4 @@ def main():
     )
     args = parser.parse_args()
 
-    asyncio.run(async_main(args.opt_out_list, args.gh_token))
+    asyncio.run(async_main(args.port, args.opt_out_list, args.gh_token))
