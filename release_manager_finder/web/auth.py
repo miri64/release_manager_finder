@@ -18,7 +18,7 @@ from .. import GITHUB_ORGA
 __author__ = "Martine S. Lenders <martine.lenders@tu-dresden.de>"
 
 
-GITHUB_TEAMS = ["maintainers", "owner"]
+GITHUB_TEAMS = ["maintainers", "owners"]
 
 
 class GitHubOAuth2Mixin(tornado.auth.OAuth2Mixin):
