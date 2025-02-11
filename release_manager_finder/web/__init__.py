@@ -34,7 +34,6 @@ from release_manager_finder.web import auth
 
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
-GITHUB_TEAM = "maintainers"
 DEBUG = bool(os.environ.get("DEBUG", False))
 HOSTNAME_URL = os.environ.get("HOSTNAME_URL", "http://localhost:8888")
 COOKIE_SECRET = os.environ["COOKIE_SECRET"]
@@ -46,10 +45,14 @@ class BaseHandler(tornado.web.RequestHandler):
         if cookie:
             user = json.loads(cookie)
             github = agithub.GitHub.GitHub(token=user["access_token"], paginate=True)
-            status, _ = (
-                github.orgs[GITHUB_ORGA].teams[GITHUB_TEAM].members[user["login"]].get()
-            )
-            if status == 404:
+            no_maintainer = True
+            for team in auth.GITHUB_TEAMS:
+                status, _ = (
+                    github.orgs[GITHUB_ORGA].teams[team].members[user["login"]].get()
+                )
+                if status != 404:
+                    no_maintainer = False
+            if no_maintainer:
                 self.redirect(f"not-a-maintainer?user={user['login']}")
             return user
         return cookie

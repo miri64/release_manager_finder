@@ -18,7 +18,7 @@ from .. import GITHUB_ORGA
 __author__ = "Martine S. Lenders <martine.lenders@tu-dresden.de>"
 
 
-GITHUB_TEAM = "maintainers"
+GITHUB_TEAMS = ["maintainers", "owner"]
 
 
 class GitHubOAuth2Mixin(tornado.auth.OAuth2Mixin):
@@ -102,12 +102,17 @@ class GitHubTeamOAuth2Mixin(GitHubOAuth2Mixin):
         user = await super().get_authenticated_user(
             redirect_uri, client_id, client_secret, code, extra_fields=extra_fields
         )
-        try:
-            await self.github_request(
-                path=f"/orgs/{GITHUB_ORGA}/teams/{GITHUB_TEAM}/members/{user['login']}",
-                access_token=user["access_token"],
-            )
-        except tornado.httpclient.HTTPClientError:
-            print("error")
+        no_maintainer = True
+        for team in GITHUB_TEAMS:
+            try:
+                await self.github_request(
+                    path=f"/orgs/{GITHUB_ORGA}/teams/{team}/members/{user['login']}",
+                    access_token=user["access_token"],
+                )
+            except tornado.httpclient.HTTPClientError:
+                pass
+            else:
+                no_maintainer = False
+        if no_maintainer:
             self.redirect(f"/not-a-maintainer?user={user['login']}")
         return user
