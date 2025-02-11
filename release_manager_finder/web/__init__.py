@@ -10,8 +10,8 @@ import argparse
 import json
 import os
 import pathlib
-import pprint
 import random
+import urllib.parse
 
 import agithub
 import asyncio
@@ -32,6 +32,7 @@ CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 GITHUB_TEAM = "maintainers"
 DEBUG = bool(os.environ.get("DEBUG", False))
+HOSTNAME_URL = os.environ.get("HOSTNAME_URL", "http://localhost:8888")
 COOKIE_SECRET = os.environ["COOKIE_SECRET"]
 
 
@@ -52,7 +53,10 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class LoginHandler(BaseHandler, auth.GitHubTeamOAuth2Mixin):
     async def get(self):
-        redirect_uri = self.request.full_url()
+        redirect_uri = urllib.parse.urljoin(
+            HOSTNAME_URL,
+            self.reverse_url("github-login")
+        )
         if self.get_argument("code", False):
             user = await self.get_authenticated_user(
                 redirect_uri=redirect_uri,
@@ -160,7 +164,7 @@ def make_app(opt_out_list: list[str], gh_token: str = None) -> tornado.web.Appli
                 {"initial_opt_out_list": opt_out_list, "gh_token": gh_token},
             ),
             (r"/favicon.svg", FaviconHandler),
-            (r"/login", LoginHandler),
+            (r"/login", LoginHandler, [], "github-login"),
             (r"/logout", LogoutHandler),
             (r"/not-a-maintainer", NotMaintainerHandler),
         ],
