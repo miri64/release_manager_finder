@@ -31,6 +31,7 @@ from release_manager_finder.web import auth
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 GITHUB_TEAM = "maintainers"
+DEBUG = bool(os.environ.get("DEBUG", False))
 COOKIE_SECRET = os.environ["COOKIE_SECRET"]
 
 
@@ -164,8 +165,8 @@ def make_app(opt_out_list: list[str], gh_token: str = None) -> tornado.web.Appli
             (r"/not-a-maintainer", NotMaintainerHandler),
         ],
         template_path=pathlib.Path(__file__).parent / "templates",
-        autoreload=True,
-        debug=True,
+        autoreload=DEBUG,
+        debug=DEBUG,
         cookie_secret=COOKIE_SECRET,
         login_url="/login",
         xsrf_cookies=True,
