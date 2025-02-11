@@ -199,7 +199,6 @@ def print_results(
     rm_tally: typing.Iterator[tuple[int, str]],
     opt_out_list: list[str],
     attendees_list: list[str],
-    current_maintainers: typing.Sequence[str],
     least_managing_maintainers: list[tuple[int, str]],
 ) -> None:
     print("Current release management tally")
@@ -245,6 +244,5 @@ def main():
         rm_tally,
         opt_out_list,
         attendees_list,
-        set(current_maintainers.keys()),
         least_managing_maintainers,
     )
