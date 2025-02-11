@@ -105,5 +105,5 @@ class GitHubTeamOAuth2Mixin(GitHubOAuth2Mixin):
             )
         except tornado.httpclient.HTTPClientError:
             print("error")
-            self.redirect(f"/not-a-maintainer?user=user['login']")
+            self.redirect(f"/not-a-maintainer?user={user['login']}")
         return user
