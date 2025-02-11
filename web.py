@@ -2,9 +2,7 @@
 #
 # Copyright (C) 2024 TU Dresden
 #
-# This file is subject to the terms and conditions of the GNU Lesser
-# General Public License v2.1. See the file LICENSE in the top level
-# directory for more details.
+# Distributed under terms of the MIT license.
 
 from release_manager_finder.web import main
 
