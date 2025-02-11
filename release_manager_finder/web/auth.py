@@ -4,6 +4,10 @@
 #
 # Distributed under terms of the MIT license.
 
+# pylint: disable=missing-class-docstring
+# pylint: disable=missing-module-docstring
+# pylint: disable=missing-function-docstring
+
 import tornado.auth
 import tornado.escape
 import tornado.web
@@ -20,7 +24,8 @@ GITHUB_TEAM = "maintainers"
 class GitHubOAuth2Mixin(tornado.auth.OAuth2Mixin):
     """GitHub authentication using OAuth2.
 
-    Original code: https://gist.github.com/thelastpolaris/7f1395257a6f064c224f4bfdf2fa9fa4
+    Original code:
+    https://gist.github.com/thelastpolaris/7f1395257a6f064c224f4bfdf2fa9fa4
     """
 
     _OAUTH_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token?"
@@ -74,14 +79,13 @@ class GitHubOAuth2Mixin(tornado.auth.OAuth2Mixin):
 
         response = await self.get_auth_http_client().fetch(
             url,
-            headers={"Authorization": "token {}".format(access_token)},
+            headers={"Authorization": f"token {access_token}"},
             user_agent="PMR",
         )
 
         if response.body:
             return tornado.escape.json_decode(response.body)
-        else:
-            return response.code, response.reason
+        return response.code, response.reason
 
 
 class GitHubTeamOAuth2Mixin(GitHubOAuth2Mixin):

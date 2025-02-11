@@ -20,8 +20,6 @@ from .. import (
     GITHUB_ORGA,
     GITHUB_REPO,
     GitHubError,
-    get_team_members,
-    get_owners,
     get_maintainers,
     get_past_release_managers,
     get_attendees_list,
@@ -40,74 +38,27 @@ def github():
     yield agithub.GitHub.GitHub()
 
 
-def test_get_team_members_success(mocker, github):
-    mocked_request = mocker.patch(
-        "agithub.GitHub.GitHubClient.request", return_value=(200, [{"login": "foobar"}])
-    )
-    team_members = get_team_members(github, "test")
-    assert team_members == {"foobar": 0}
-    mocked_request.assert_called_once_with(
-        "GET", f"/orgs/{GITHUB_ORGA}/teams/test/members", None, {}
-    )
-
-
-def test_get_team_members_error(mocker, github):
-    mocked_request = mocker.patch(
-        "agithub.GitHub.GitHubClient.request", return_value=(400, "Error foobar")
-    )
-    with pytest.raises(GitHubError) as exc:
-        get_team_members(github, "test")
-    assert str(exc.value) == "Error foobar"
-    mocked_request.assert_called_once_with(
-        "GET", f"/orgs/{GITHUB_ORGA}/teams/test/members", None, {}
-    )
-
-
-def test_get_owners_success(mocker, github):
-    mocked_request = mocker.patch(
-        "agithub.GitHub.GitHubClient.request", return_value=(200, [{"login": "foobar"}])
-    )
-    team_members = get_owners(github)
-    assert team_members == {"foobar": 0}
-    mocked_request.assert_called_once_with(
-        "GET", f"/orgs/{GITHUB_ORGA}/members?role=admin", None, {}
-    )
-
-
-def test_get_owners_error(mocker, github):
-    mocked_request = mocker.patch(
-        "agithub.GitHub.GitHubClient.request", return_value=(400, "Error foobar")
-    )
-    with pytest.raises(GitHubError) as exc:
-        get_owners(github)
-    assert str(exc.value) == "Error foobar"
-    mocked_request.assert_called_once_with(
-        "GET", f"/orgs/{GITHUB_ORGA}/members?role=admin", None, {}
-    )
-
-
-def test_get_maintainers(mocker, github):
-    mocker.patch("release_manager_finder.get_team_members", return_value={"foobar": 0})
-    mocker.patch("release_manager_finder.get_owners", return_value={"owner": 0})
-    maintainers = get_maintainers(github)
-    assert maintainers == {"foobar": 0, "owner": 0}
-
+def test_get_maintainers(mocker):
     mocker.patch(
-        "release_manager_finder.get_team_members",
-        return_value={"foobar": 0, "owner": 0},
+        "urllib.request.urlopen",
+        mocker.mock_open(
+            read_data="""
+<html>
+  <body id="maintainer-list">
+    <h5 class="card-title">@owner | Mrs. Owner</h5>
+    I own this repo.
+    <h5 class="card-title">@snafu | Dr. Sid Normal</h5>
+    All normal here.
+    This maintainer breaks a lot of stuff beyond repair.
+    <h5 class="card-title">@foobar | Mr. Foobar</h5>
+    This maintainer breaks a lot of stuff beyond repair.
+  </body>
+</html>
+    """
+        ),
     )
-    maintainers = get_maintainers(github)
-    assert maintainers == {"foobar": 0, "owner": 0}
 
-    def _maintainers(_, team, *args, **kwargs):  # pylint: disable=unused-argument
-        maintainers = {
-            "maintainers": {"foobar": 0},
-            "admin": {"snafu": 0},
-        }
-        return maintainers[team]
-
-    mocker.patch("release_manager_finder.get_team_members", side_effect=_maintainers)
-    maintainers = get_maintainers(github)
+    maintainers = get_maintainers()
     assert maintainers == {"foobar": 0, "owner": 0, "snafu": 0}
 
 
