@@ -97,7 +97,10 @@ class NotMaintainerHandler(BaseHandler):
 
     def write_error(self, status_code, **kwargs):
         user = self.get_argument("user")
-        self.write(f"401 Unauthorized: GitHub user '@{user}' is not a maintainer")
+        self.write(
+            f"401 Unauthorized: GitHub user '@{user}' is not a maintainer. "
+            f'<a href="{self.reverse_url("github-logout")}">Logout and go back.</a>'
+        )
 
 
 class LogoutHandler(BaseHandler, auth.GitHubTeamOAuth2Mixin):
@@ -178,10 +181,11 @@ def make_app(opt_out_list: list[str], gh_token: str = None) -> tornado.web.Appli
                 r"/",
                 MainHandler,
                 {"initial_opt_out_list": opt_out_list, "gh_token": gh_token},
+                "main",
             ),
             (r"/favicon.svg", FaviconHandler),
             (r"/login", LoginHandler, [], "github-login"),
-            (r"/logout", LogoutHandler),
+            (r"/logout", LogoutHandler, [], "github-logout"),
             (r"/not-a-maintainer", NotMaintainerHandler),
         ],
         template_path=pathlib.Path(__file__).parent / "templates",
