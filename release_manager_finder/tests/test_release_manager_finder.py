@@ -29,6 +29,7 @@ from .. import (
     least_managing,
     parse_args,
     print_results,
+    update_next_release_managers,
     main,
 )
 
@@ -95,6 +96,18 @@ def test_get_past_release_managers_error(mocker, github):
     )
 
 
+def test_update_next_release_managers():
+    maintainers = {
+        "huey": 2,
+        "dewey": 7,
+        "louie": 3,
+    }
+    update_next_release_managers(maintainers, ["huey"])
+    assert maintainers == {"huey": 3, "dewey": 7, "louie": 3}
+    update_next_release_managers(maintainers, ["dewey", "louie"])
+    assert maintainers == {"huey": 3, "dewey": 8, "louie": 4}
+
+
 def test_get_opt_out_list(mocker):
     mocker.patch(
         "release_manager_finder.open",
@@ -155,6 +168,9 @@ def test_least_managing():
         (2, "test"),
         (2, "snafu"),
     ]
+    current_maintainers = {"foobar"}
+    maintainers = [(1, "foobar")]
+    assert least_managing(maintainers, current_maintainers) == [(1, "foobar")]
 
 
 def test_parse_args(mocker):
