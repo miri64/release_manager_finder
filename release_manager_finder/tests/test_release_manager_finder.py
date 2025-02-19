@@ -267,7 +267,15 @@ def opt_out_list(tmp_path):
 def test_main(mocker, opt_out_list, attendees_list, capsys):
     mocker.patch(
         "sys.argv",
-        ["command", "-t", os.environ["GITHUB_TOKEN"], opt_out_list, attendees_list],
+        [
+            "command",
+            "-t",
+            os.environ["GITHUB_TOKEN"],
+            "-n",
+            "kaspar030",
+            opt_out_list,
+            attendees_list,
+        ],
     )
     main()
     captured = capsys.readouterr()
