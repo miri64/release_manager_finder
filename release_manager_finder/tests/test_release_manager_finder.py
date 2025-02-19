@@ -100,17 +100,17 @@ def test_get_opt_out_list(mocker):
         "release_manager_finder.open",
         mocker.mock_open(read_data="huey\n   dewey\n louie  "),
     )
-    opt_out_list = get_opt_out_list(argparse.Namespace(opt_out_list="test"))
+    opt_out_list = get_opt_out_list(opt_out_filename="test")
     assert opt_out_list == ["huey", "dewey", "louie"]
 
-    opt_out_list = get_opt_out_list(argparse.Namespace(opt_out_list=None))
+    opt_out_list = get_opt_out_list(opt_out_filename=None)
     assert not opt_out_list
 
     mocker.patch(
         "release_manager_finder.open",
         mocker.mock_open(read_data="huey\n  \n   # donald  \n  dewey\n louie  "),
     )
-    opt_out_list = get_opt_out_list(argparse.Namespace(opt_out_list="test"))
+    opt_out_list = get_opt_out_list(opt_out_filename="test")
     assert opt_out_list == ["huey", "dewey", "louie"]
 
 
@@ -158,7 +158,7 @@ def test_least_managing():
 
 
 def test_parse_args(mocker):
-    mocker.patch("sys.argv", ["command", "test_token", "test_attendees_list"])
+    mocker.patch("sys.argv", ["command", "-t", "test_token", "test_attendees_list"])
     args = parse_args()
     assert args.gh_token == "test_token"
     assert args.opt_out_list is None
@@ -166,7 +166,7 @@ def test_parse_args(mocker):
 
     mocker.patch(
         "sys.argv",
-        ["command", "test_token", "test_opt_out_list", "test_attendees_list"],
+        ["command", "-t", "test_token", "test_opt_out_list", "test_attendees_list"],
     )
     args = parse_args()
     assert args.gh_token == "test_token"
@@ -176,7 +176,10 @@ def test_parse_args(mocker):
 
 def test_print_results(mocker, capsys):
     mocker.patch("random.choice", lambda seq: seq[0])
-    current_maintainers = {"foobar", "huey", "louie", "scrooge", "donald"}
+    least_managing_maintainers = [
+        (2, "foobar"),
+        (2, "donald"),
+    ]
     maintainers = [
         (2, "foobar"),
         (2, "huey"),
@@ -188,7 +191,7 @@ def test_print_results(mocker, capsys):
     ]
     opt_out_list = ["huey", "dewey", "louie"]
     attendees_list = ["louie", "dewey", "foobar", "donald"]
-    print_results(maintainers, opt_out_list, attendees_list, current_maintainers)
+    print_results(maintainers, opt_out_list, attendees_list, least_managing_maintainers)
     captured = capsys.readouterr()
     assert (
         captured.out
@@ -248,7 +251,7 @@ def opt_out_list(tmp_path):
 def test_main(mocker, opt_out_list, attendees_list, capsys):
     mocker.patch(
         "sys.argv",
-        ["command", os.environ["GITHUB_TOKEN"], opt_out_list, attendees_list],
+        ["command", "-t", os.environ["GITHUB_TOKEN"], opt_out_list, attendees_list],
     )
     main()
     captured = capsys.readouterr()
@@ -275,7 +278,7 @@ def test_main(mocker, opt_out_list, attendees_list, capsys):
 def test_no_selection_pool(mocker, opt_out_list, attendees_list, capsys):
     mocker.patch(
         "sys.argv",
-        ["command", os.environ["GITHUB_TOKEN"], opt_out_list, attendees_list],
+        ["command", "-t", os.environ["GITHUB_TOKEN"], opt_out_list, attendees_list],
     )
     # Causes attendees list to opt out
     mocker.patch(

@@ -222,7 +222,7 @@ def print_results(
             "\n\nThe next release manager is: "
             f"{random.choice(least_managing_maintainers)[1]}"
         )
-    except ValueError:
+    except (ValueError, IndexError):
         print("Selection pool is empty!")
 
 
