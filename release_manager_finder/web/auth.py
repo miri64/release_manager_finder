@@ -89,7 +89,7 @@ class GitHubOAuth2Mixin(tornado.auth.OAuth2Mixin):
 
 
 class GitHubTeamOAuth2Mixin(GitHubOAuth2Mixin):
-    SCOPE = {"scope": ["read:org"]}
+    SCOPE = {"scope": ["read:org"]}  # needed to read the Teams page
 
     def initialize(self, org_name, team_id):
         super().initialize()

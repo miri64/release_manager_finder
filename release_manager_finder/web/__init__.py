@@ -98,7 +98,7 @@ class NotMaintainerHandler(BaseHandler):
     def write_error(self, status_code, **kwargs):
         user = self.get_argument("user")
         self.write(
-            f"401 Unauthorized: GitHub user '@{user}' is not a maintainer. "
+            f"{status_code} Unauthorized: GitHub user '@{user}' is not a maintainer. "
             f'<a href="{self.reverse_url("github-logout")}">Logout and go back.</a>'
         )
 
@@ -216,6 +216,7 @@ def main():
         "--port",
         help="Port to run the web server on (default: 8888)",
         default=8888,
+        type=int,
     )
     parser.add_argument(
         "-o",
