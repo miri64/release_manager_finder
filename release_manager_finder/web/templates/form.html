@@ -10,7 +10,7 @@
       <fieldset>
       {% for maintainer in maintainers %}
       <div class="form-check form-check-inline">
-        <input class="form-check-input" name="opt-out" type="checkbox" id="opt-out-{{ maintainer }}" value="{{ maintainer }}" {% if maintainer in opt_out_list %}checked{% end %} />
+        <input class="form-check-input" name="opt-out" type="checkbox" id="opt-out-{{ maintainer }}" value="{{ maintainer }}"{% if maintainer in opt_out_list %} checked{% end %} />
         <label class="form-check-label" for="opt-out-{{ maintainer }}"><a href="https://github.com/{{ maintainer }}"><tt>@{{ maintainer }}</tt></a></label>
       </div>
       {% end %}
@@ -49,5 +49,4 @@
 
     <button class="btn btn-primary" type="submit">Determine release manager</button>
   </form>
-  <!-- Content here -->
 {% end %}
