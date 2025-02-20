@@ -85,7 +85,7 @@ class GitHubOAuth2Mixin(tornado.auth.OAuth2Mixin):
 
         if response.body:
             return tornado.escape.json_decode(response.body)
-        return response.code, response.reason
+        return None
 
 
 class GitHubTeamOAuth2Mixin(GitHubOAuth2Mixin):
@@ -115,4 +115,5 @@ class GitHubTeamOAuth2Mixin(GitHubOAuth2Mixin):
                 no_maintainer = False
         if no_maintainer:
             self.redirect(f"/not-a-maintainer?user={user['login']}")
+            return None
         return user

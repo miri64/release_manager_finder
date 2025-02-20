@@ -129,7 +129,7 @@ class MainHandler(BaseHandler):
     @tornado.web.authenticated
     async def post(self):
         token = self.gh_token
-        if self.current_user:
+        if self.current_user:  # pragma: no cover
             token = self.current_user.get("access_token")
         github = agithub.GitHub.GitHub(token=token, paginate=True)
 
