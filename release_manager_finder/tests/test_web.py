@@ -340,7 +340,7 @@ class TestBaseWebApp(tornado.testing.AsyncHTTPTestCase):
         body = response.body.decode()
         assert (
             """
-<h1>Congratulation <a href="https://github.com/donald"><tt>@donald</tt></a> 🎉, you are the next relaase manager!</h1>
+<h1>Congratulation <a href="https://github.com/donald"><tt>@donald</tt></a> 🎉, you are the next release manager!</h1>
 <p>
 Here is how I came to this decision.
 </p>
