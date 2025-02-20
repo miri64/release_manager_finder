@@ -18,6 +18,7 @@ import unittest.mock
 import urllib.parse
 
 import pytest
+import tornado.httpclient
 import tornado.testing
 import tornado.web
 
@@ -221,7 +222,7 @@ class TestBaseWebApp(tornado.testing.AsyncHTTPTestCase):
         "release_manager_finder.web.get_maintainers",
         lambda: ["huey", "dewey", "louie"],
     )
-    def test_root_default(self):
+    def test_root_get_default(self):
         response = self.fetch("/")
         maintainers = web.get_maintainers()
         body = response.body.decode()
@@ -246,9 +247,13 @@ class TestBaseWebApp(tornado.testing.AsyncHTTPTestCase):
     @unittest.mock.patch.object(web.MainHandler, "current_user", True)
     @unittest.mock.patch(
         "release_manager_finder.web.get_maintainers",
-        lambda: ["huey", "dewey", "louie"],
+        lambda: {
+            "huey": 0,
+            "dewey": 0,
+            "louie": 0,
+        },
     )
-    def test_root_preselected_opt_out(self):
+    def test_root_get_preselected_opt_out(self):
         opt_out = ["huey"]
 
         def initialize_mock(self, initial_opt_out_list, gh_token=None):
@@ -280,6 +285,239 @@ class TestBaseWebApp(tornado.testing.AsyncHTTPTestCase):
                 '<input class="form-check-input" name="next-rm" type="checkbox" '
                 f'id="next-rm-{maintainer}" value="{maintainer}" />' in body
             )
+
+    @unittest.mock.patch.object(
+        web.MainHandler, "current_user", {"access_token": "blafoo", "user": "louie"}
+    )
+    @unittest.mock.patch.object(
+        web.MainHandler, "check_xsrf_cookie", unittest.mock.MagicMock()
+    )
+    @unittest.mock.patch(
+        "release_manager_finder.web.get_maintainers",
+        lambda: {
+            "foobar": 0,
+            "huey": 0,
+            "test": 0,
+            "dewey": 0,
+            "louie": 0,
+            "donald": 0,
+        },
+    )
+    @unittest.mock.patch(
+        "release_manager_finder.web.get_past_release_managers",
+        lambda _: {
+            "foobar": 1,
+            "huey": 2,
+            "test": 2,
+            "louie": 3,
+            "snafu": 5,
+            "scrooge": 2,
+            "donald": 2,
+        },
+    )
+    @unittest.mock.patch(
+        "random.choice",
+        lambda seq: seq[0],
+    )
+    def test_root_post_default(self):
+        response = self.fetch(
+            "/",
+            method="POST",
+            body=urllib.parse.urlencode(
+                [
+                    ("next-rm", "foobar"),
+                    ("opt-out", "huey"),
+                    ("opt-out", "dewey"),
+                    ("opt-out", "louie"),
+                    ("opt-out", "dewey"),
+                    ("attendees", "louie"),
+                    ("attendees", "dewey"),
+                    ("attendees", "foobar"),
+                    ("attendees", "donald"),
+                ]
+            ),
+        )
+        body = response.body.decode()
+        assert (
+            """
+<h1>Congratulation <a href="https://github.com/donald"><tt>@donald</tt></a> 🎉, you are the next relaase manager!</h1>
+<p>
+Here is how I came to this decision.
+</p>
+<h2>Selection Pool</h2>
+<p>
+Maintainers that are attending the VMA and not <a href="https://forum.riot-os.org/t/release-management-opt-out/3354">on the opt-out list</a> and did manage the least amount of releases managed.
+The next release manager, <tt>@donald</tt>, was randomly picked from this list.
+<a href="/">Increase selection.</a>
+</p>
+<table class="table table-responsive table-striped">
+<thead>
+<tr>
+<th scope="col">Releases</th>
+<th scope="col">Maintainer</th>
+<th scope="col">Is Maintainer</th>
+<th scope="col">Opt-Out</th>
+<th scope="col">Attending VMA</th>
+</tr>
+</thead>
+<tbody>
+
+<tr class="table-success">
+<td width="3em">2</td>
+<td><a href="https://github.com/@donald"><tt>@donald</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em"></td>
+<td width="1em">✅</td>
+</tr>
+
+<tr class="table-success">
+<td width="3em">2</td>
+<td><a href="https://github.com/@foobar"><tt>@foobar</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em"></td>
+<td width="1em">✅</td>
+</tr>
+
+</tbody>
+</table>
+
+<h2>Total Release Manager Tally</h2>
+<p>
+Here is the list of all maintainers (<a href="">current</a> and past) who managed a release.
+<span class="text-danger">Red</span> rows mark users that are either no maintainers anymore or <a href="https://forum.riot-os.org/t/release-management-opt-out/3354">opted out of release management</a>.
+<span class="text-success">Green</span> rows mark maintainers who do not fall in those categories and who are attending the VMA.
+Only <span class="text-success">green</span> rows are considered for the list above.
+</p>
+<table class="table table-responsive table-striped">
+<thead>
+<tr>
+<th scope="col">Releases</th>
+<th scope="col">User</th>
+<th scope="col">Is Maintainer</th>
+<th scope="col">Opt-Out</th>
+<th scope="col">Attending VMA</th>
+</tr>
+</thead>
+<tbody>
+
+<tr class="table-danger">
+<td width="3em">0</td>
+<td><a href="https://github.com/@dewey"><tt>@dewey</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em">✅</td>
+<td width="1em">✅</td>
+</tr>
+
+<tr class="table-success">
+<td width="3em">2</td>
+<td><a href="https://github.com/@donald"><tt>@donald</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em"></td>
+<td width="1em">✅</td>
+</tr>
+
+<tr class="table-success">
+<td width="3em">2</td>
+<td><a href="https://github.com/@foobar"><tt>@foobar</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em"></td>
+<td width="1em">✅</td>
+</tr>
+
+<tr class="table-danger">
+<td width="3em">2</td>
+<td><a href="https://github.com/@huey"><tt>@huey</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em">✅</td>
+<td width="1em"></td>
+</tr>
+
+<tr class="table-danger">
+<td width="3em">2</td>
+<td><a href="https://github.com/@scrooge"><tt>@scrooge</tt></a></td>
+<td width="1em"></td>
+<td width="1em"></td>
+<td width="1em"></td>
+</tr>
+
+<tr >
+<td width="3em">2</td>
+<td><a href="https://github.com/@test"><tt>@test</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em"></td>
+<td width="1em"></td>
+</tr>
+
+<tr class="table-danger">
+<td width="3em">3</td>
+<td><a href="https://github.com/@louie"><tt>@louie</tt></a></td>
+<td width="1em">✅</td>
+<td width="1em">✅</td>
+<td width="1em">✅</td>
+</tr>
+
+<tr class="table-danger">
+<td width="3em">5</td>
+<td><a href="https://github.com/@snafu"><tt>@snafu</tt></a></td>
+<td width="1em"></td>
+<td width="1em"></td>
+<td width="1em"></td>
+</tr>
+
+</tbody>
+</table>
+
+</div>"""  # noqa: E501 pylint: disable=line-too-long
+            in body
+        )
+
+    @unittest.mock.patch.object(
+        web.MainHandler, "current_user", {"access_token": "blafoo", "user": "louie"}
+    )
+    @unittest.mock.patch.object(
+        web.MainHandler, "check_xsrf_cookie", unittest.mock.MagicMock()
+    )
+    @unittest.mock.patch(
+        "release_manager_finder.web.get_maintainers",
+        lambda: {
+            "foobar": 0,
+            "huey": 0,
+            "test": 0,
+            "dewey": 0,
+            "louie": 0,
+            "donald": 0,
+        },
+    )
+    @unittest.mock.patch(
+        "release_manager_finder.web.get_past_release_managers",
+        lambda _: {
+            "foobar": 1,
+            "huey": 2,
+            "test": 2,
+            "louie": 3,
+            "snafu": 5,
+            "scrooge": 2,
+            "donald": 2,
+        },
+    )
+    def test_root_post_no_selection_pool(self):
+        response = self.fetch(
+            "/",
+            method="POST",
+            body=urllib.parse.urlencode(
+                [
+                    ("next-rm", "foobar"),
+                    ("opt-out", "huey"),
+                    ("opt-out", "dewey"),
+                    ("opt-out", "louie"),
+                    ("opt-out", "dewey"),
+                    ("attendees", "louie"),
+                    ("attendees", "dewey"),
+                ]
+            ),
+        )
+        body = response.body.decode()
+        assert "<h2>There is no suitable candidate 😱!</h2>" in body
 
     def test_favicon(self):
         response = self.fetch("/favicon.svg")
@@ -336,3 +574,189 @@ def test_main(mocker, argv, exp):
     web.main()
     make_app.assert_called_once_with(exp["opt-out-list"], exp["token"])
     make_app.return_value.listen.assert_called_once_with(exp["port"])
+
+
+@pytest.mark.asyncio
+async def test_github_oauth2_mixin_get_authenticated_user(mocker):
+    # test default
+    client_mock = mocker.MagicMock(
+        return_value=mocker.MagicMock(
+            fetch=mocker.AsyncMock(
+                return_value=mocker.MagicMock(
+                    body=(
+                        b'{"access_token":"foobar","login":"huey","id":12356,'
+                        b'"test":"this is extra","full_name":"Tick Duck"}'
+                    )
+                )
+            )
+        )
+    )
+    mocker.patch.object(web.auth.GitHubOAuth2Mixin, "get_auth_http_client", client_mock)
+    fieldmap = await web.auth.GitHubOAuth2Mixin().get_authenticated_user(
+        "http://localhost:8888/login",
+        client_id=os.environ["CLIENT_ID"],
+        client_secret=os.environ["CLIENT_SECRET"],
+        code="0sIo65g4LzV74CWeUh8",
+    )
+    assert fieldmap == {"access_token": "foobar", "login": "huey", "id": 12356}
+
+    # test for extra fields
+    fieldmap = await web.auth.GitHubOAuth2Mixin().get_authenticated_user(
+        "http://localhost:8888/login",
+        client_id=os.environ["CLIENT_ID"],
+        client_secret=os.environ["CLIENT_SECRET"],
+        code="0sIo65g4LzV74CWeUh8",
+        extra_fields=["full_name"],
+    )
+    assert fieldmap == {
+        "full_name": "Tick Duck",
+        "access_token": "foobar",
+        "login": "huey",
+        "id": 12356,
+    }
+
+    # test when "/user" response is empty
+    client_mock = mocker.MagicMock(
+        return_value=mocker.MagicMock(
+            fetch=mocker.AsyncMock(
+                side_effect=[
+                    mocker.MagicMock(
+                        body=(
+                            b'{"access_token":"foobar","login":"huey","id":12356,'
+                            b'"test":"this is extra","full_name":"Tick Duck"}'
+                        )
+                    ),
+                    mocker.MagicMock(body=""),
+                ]
+            )
+        )
+    )
+    mocker.patch.object(web.auth.GitHubOAuth2Mixin, "get_auth_http_client", client_mock)
+    fieldmap = await web.auth.GitHubOAuth2Mixin().get_authenticated_user(
+        "http://localhost:8888/login",
+        client_id=os.environ["CLIENT_ID"],
+        client_secret=os.environ["CLIENT_SECRET"],
+        code="0sIo65g4LzV74CWeUh8",
+    )
+    assert not fieldmap
+
+
+@pytest.mark.asyncio
+async def test_github_team_oauth2_mixin_get_authenticated_user(mocker):
+    # test huey as owner
+    client_mock = mocker.MagicMock(
+        return_value=mocker.MagicMock(
+            fetch=mocker.AsyncMock(
+                side_effect=[
+                    mocker.MagicMock(
+                        body=(
+                            b'{"access_token":"foobar","login":"huey","id":12356,'
+                            b'"test":"this is extra","full_name":"Tick Duck"}'
+                        )
+                    ),
+                    mocker.MagicMock(
+                        body=(
+                            b'{"login":"huey","id":12356,'
+                            b'"test":"this is extra","full_name":"Tick Duck"}'
+                        )
+                    ),
+                    mocker.MagicMock(body=b'{"huey": "Huey is an owner!"}'),
+                    tornado.httpclient.HTTPClientError(401),
+                ]
+            )
+        )
+    )
+    mocker.patch.object(
+        web.auth.GitHubTeamOAuth2Mixin, "get_auth_http_client", client_mock
+    )
+    web.auth.GitHubOAuth2Mixin.initialize = mocker.MagicMock()
+    mixin = web.auth.GitHubTeamOAuth2Mixin()
+    mixin.initialize("RIOT-OS", "maintainers")
+    fieldmap = await mixin.get_authenticated_user(
+        "http://localhost:8888/login",
+        client_id=os.environ["CLIENT_ID"],
+        client_secret=os.environ["CLIENT_SECRET"],
+        code="0sIo65g4LzV74CWeUh8",
+    )
+    assert fieldmap == {"access_token": "foobar", "login": "huey", "id": 12356}
+
+    # test huey as maintainer
+    client_mock = mocker.MagicMock(
+        return_value=mocker.MagicMock(
+            fetch=mocker.AsyncMock(
+                side_effect=[
+                    mocker.MagicMock(
+                        body=(
+                            b'{"access_token":"foobar","login":"huey","id":12356,'
+                            b'"test":"this is extra","full_name":"Tick Duck"}'
+                        )
+                    ),
+                    mocker.MagicMock(
+                        body=(
+                            b'{"login":"huey","id":12356,'
+                            b'"test":"this is extra","full_name":"Tick Duck"}'
+                        )
+                    ),
+                    tornado.httpclient.HTTPClientError(401),
+                    mocker.MagicMock(body=b'{"huey": "Huey is an maintainer!"}'),
+                ]
+            )
+        )
+    )
+    mocker.patch.object(
+        web.auth.GitHubTeamOAuth2Mixin, "get_auth_http_client", client_mock
+    )
+    web.auth.GitHubOAuth2Mixin.initialize = mocker.MagicMock()
+    mixin = web.auth.GitHubTeamOAuth2Mixin()
+    mixin.initialize("RIOT-OS", "maintainers")
+    fieldmap = await mixin.get_authenticated_user(
+        "http://localhost:8888/login",
+        client_id=os.environ["CLIENT_ID"],
+        client_secret=os.environ["CLIENT_SECRET"],
+        code="0sIo65g4LzV74CWeUh8",
+    )
+    assert fieldmap == {"access_token": "foobar", "login": "huey", "id": 12356}
+
+    # test huey as neither owner nor maintainer
+    called = {}
+
+    def redirect(_, url):
+        called["redirect"] = url
+
+    client_mock = mocker.MagicMock(
+        return_value=mocker.MagicMock(
+            fetch=mocker.AsyncMock(
+                side_effect=[
+                    mocker.MagicMock(
+                        body=(
+                            b'{"access_token":"foobar","login":"huey","id":12356,'
+                            b'"test":"this is extra","full_name":"Tick Duck"}'
+                        )
+                    ),
+                    mocker.MagicMock(
+                        body=(
+                            b'{"login":"huey","id":12356,'
+                            b'"test":"this is extra","full_name":"Tick Duck"}'
+                        )
+                    ),
+                    tornado.httpclient.HTTPClientError(401),
+                    tornado.httpclient.HTTPClientError(401),
+                ]
+            )
+        )
+    )
+    mocker.patch.object(
+        web.auth.GitHubTeamOAuth2Mixin, "get_auth_http_client", client_mock
+    )
+    web.auth.GitHubOAuth2Mixin.initialize = mocker.MagicMock()
+    web.auth.GitHubOAuth2Mixin.redirect = redirect
+    mixin = web.auth.GitHubTeamOAuth2Mixin()
+    mixin.initialize("RIOT-OS", "maintainers")
+    fieldmap = await mixin.get_authenticated_user(
+        "http://localhost:8888/login",
+        client_id=os.environ["CLIENT_ID"],
+        client_secret=os.environ["CLIENT_SECRET"],
+        code="0sIo65g4LzV74CWeUh8",
+    )
+    assert not fieldmap
+    assert called["redirect"] == "/not-a-maintainer?user=huey"
